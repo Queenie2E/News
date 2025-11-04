@@ -1,0 +1,6 @@
+# 忽略 Windows 系统和临时文件
+AppData/
+*.log
+*.tmp
+*.bak
+*.swp

@@ -1,0 +1,138 @@
+import pygame
+import random
+import sys
+
+# 初始化
+pygame.init()
+
+# 游戏窗口
+WIDTH, HEIGHT = 600, 800
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("坦克大战")
+
+# 颜色
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+
+# 游戏变量
+player_width, player_height = 60, 40
+enemy_width, enemy_height = 50, 40
+bullet_width, bullet_height = 5, 15
+
+player_x = WIDTH // 2 - player_width // 2
+player_y = HEIGHT - player_height - 10
+player_speed = 5
+
+player_bullets = []
+enemy_bullets = []
+enemies = []
+
+score = 0
+lives = 5
+
+# 时钟
+clock = pygame.time.Clock()
+
+# 字体
+font = pygame.font.SysFont(None, 36)
+
+def draw_player(x, y):
+    pygame.draw.rect(screen, GREEN, (x, y, player_width, player_height))
+
+def draw_enemy(x, y):
+    pygame.draw.rect(screen, RED, (x, y, enemy_width, enemy_height))
+
+def draw_bullet(x, y, color):
+    pygame.draw.rect(screen, color, (x, y, bullet_width, bullet_height))
+
+def show_text(text, x, y):
+    img = font.render(text, True, WHITE)
+    screen.blit(img, (x, y))
+
+while True:
+    screen.fill((0, 0, 0))
+
+    # 事件监听
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    # 键盘控制
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT] and player_x < WIDTH - player_width:
+        player_x += player_speed
+    if keys[pygame.K_SPACE]:
+        if len(player_bullets) < 5:  # 限制子弹数量
+            player_bullets.append([player_x + player_width // 2 - bullet_width // 2, player_y])
+
+    # 敌机生成
+    if random.randint(1, 50) == 1:
+        enemies.append([random.randint(0, WIDTH - enemy_width), 0])
+
+    # 敌机移动 & 发射子弹
+    for enemy in enemies[:]:
+        enemy[1] += 2
+        if random.randint(1, 100) == 1:
+            enemy_bullets.append([enemy[0] + enemy_width // 2 - bullet_width // 2, enemy[1] + enemy_height])
+        if enemy[1] > HEIGHT:
+            enemies.remove(enemy)
+
+    # 子弹移动
+    for bullet in player_bullets[:]:
+        bullet[1] -= 8
+        if bullet[1] < 0:
+            player_bullets.remove(bullet)
+
+    for bullet in enemy_bullets[:]:
+        bullet[1] += 5
+        if bullet[1] > HEIGHT:
+            enemy_bullets.remove(bullet)
+
+    # 检测碰撞 - 玩家子弹击中敌机
+    for bullet in player_bullets[:]:
+        for enemy in enemies[:]:
+            if (bullet[0] < enemy[0] + enemy_width and
+                bullet[0] + bullet_width > enemy[0] and
+                bullet[1] < enemy[1] + enemy_height and
+                bullet[1] + bullet_height > enemy[1]):
+                player_bullets.remove(bullet)
+                enemies.remove(enemy)
+                score += 1
+                break
+
+    # 检测碰撞 - 敌机子弹击中玩家
+    for bullet in enemy_bullets[:]:
+        if (bullet[0] < player_x + player_width and
+            bullet[0] + bullet_width > player_x and
+            bullet[1] < player_y + player_height and
+            bullet[1] + bullet_height > player_y):
+            enemy_bullets.remove(bullet)
+            lives -= 1
+            if lives <= 0:
+                print("游戏结束，最终得分:", score)
+                pygame.quit()
+                sys.exit()
+
+    # 绘制玩家
+    draw_player(player_x, player_y)
+
+    # 绘制敌机
+    for enemy in enemies:
+        draw_enemy(enemy[0], enemy[1])
+
+    # 绘制子弹
+    for bullet in player_bullets:
+        draw_bullet(bullet[0], bullet[1], WHITE)
+    for bullet in enemy_bullets:
+        draw_bullet(bullet[0], bullet[1], RED)
+
+    # 显示分数和生命值
+    show_text(f"得分: {score}", 10, 10)
+    show_text(f"生命: {lives}", WIDTH - 120, 10)
+
+    pygame.display.flip()
+    clock.tick(60)

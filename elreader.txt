@@ -1,0 +1,33 @@
+import requests
+import datetime
+import matplotlib.pyplot as plt
+
+# 1. 获取今天日期，并构造 API URL
+today = datetime.date.today()
+url = f"https://www.elprisetjustnu.se/api/v1/prices/{today:%Y}/{today:%m-%d}_SE3.json"
+print("Fetching:", url)
+
+# 2. 请求 JSON 数据
+resp = requests.get(url)
+resp.raise_for_status()
+data = resp.json()
+
+# 假设返回类似 {"SE3": [ { "hour": "2025-08-14T00:00:00+02:00", "price": 40.18 }, ... ] }
+prices = data.get("SE3", [])
+if not prices:
+    raise ValueError("No SE3 price data found")
+
+# 3. 提取小时标签和价格
+hours = [datetime.datetime.fromisoformat(item["hour"]).hour for item in prices]
+values = [item["price"] for item in prices]
+
+# 4. 绘图
+plt.figure(figsize=(10, 6))
+plt.plot(hours, values, marker='o', linestyle='-')
+plt.title(f"Timpriser SE3 Stockholm – {today:%Y-%m-%d}")
+plt.xlabel("Timme (0–23)")
+plt.ylabel("Pris (öre/kWh)")
+plt.xticks(range(0, 24))
+plt.grid(True)
+plt.tight_layout()
+plt.show()
