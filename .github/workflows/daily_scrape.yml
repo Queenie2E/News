@@ -1,0 +1,39 @@
+name: Daily Communication Industry Scraper
+
+# 每天定时运行：这里设置为 UTC 时间每天 01:00
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 可手动触发
+
+jobs:
+  scrape-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install @cursorai/openai
+
+      - name: Run scraping & summary script
+        run: |
+          node scrape.js
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add index.html
+          git commit -m "Daily update: $(date +'%Y-%m-%d')"
+          git push
+
