@@ -21,7 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install @cursorai/openai
+          npm install openai rss-parser node-fetch
 
       - name: Run scraping & summary script
         run: |
