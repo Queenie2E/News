@@ -35,9 +35,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: node scrape.js
    
-      # 5️⃣ Copy HTML result to root for GitHub Pages
-      - name: Copy result to root for GitHub Pages
-        run: cp news/index.html ./index.html
+      - name: 📄 Copy result to root for GitHub Pages
+        run: |
+          cp news/index.html ./index.html
 
       # 6 Commit & push updated index.html
       - name: Commit & push changes
