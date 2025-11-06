@@ -1,0 +1,14 @@
+{
+  "name": "telecom-news-scraper",
+  "version": "1.0.0",
+  "description": "Daily telecom news scraper with multilingual summaries",
+  "main": "scrape.js",
+  "type": "module",
+  "scripts": {
+    "start": "node scrape.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "openai": "^4.104.0"
+  }
+}
