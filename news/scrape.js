@@ -41,12 +41,13 @@ ${text}
 英文：
 瑞典语：
 `;
-  const response = await client.responses.create({
-    model: "gpt-4.1-mini",
-    input: prompt
-  });
-  return response.output_text;
-}
+ const completion = await openai.chat.completions.create({
+  model: "gpt-3.5-turbo",
+  messages: [
+    { role: "system", content: "..." },
+    { role: "user", content: textToSummarize }
+  ]
+});
 
 async function main() {
   let htmlContent = `
