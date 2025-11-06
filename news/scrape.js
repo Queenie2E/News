@@ -1,144 +1,89 @@
-// --- scrape.js ---
-// ✅ Make sure your package.json has: { "type": "module" }
-
-import OpenAI from "openai";
+import axios from "axios";
 import fs from "fs";
-import fetch from "node-fetch";
+import { OpenAI } from "openai";
 
-// --- CONFIG ---
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const NEWSAPI_KEY = process.env.NEWSAPI_KEY;
 
-const COMPANIES = [
-  {
-    name: "Ericsson",
-    url: "https://www.ericsson.com/en/press-releases",
-  },
-  {
-    name: "Nokia",
-    url: "https://www.nokia.com/about-us/news/releases/",
-  },
-  {
-    name: "Samsung Networks",
-    url: "https://www.samsung.com/global/business/networks/insights/news/",
-  },
-  {
-    name: "Huawei",
-    url: "https://www.huawei.com/en/news/",
-  },
+// 关键词列表
+const keywords = [
+  "telecom", "5G", "Ericsson", "Huawei", "Nokia", 
+  "Samsung", "Fujitsu", "ZTE", "mobile network"
 ];
 
-// --- HELPERS ---
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Automatic retry wrapper for OpenAI rate limits
-async function callOpenAIWithRetry(requestFn, retries = 5, delay = 20000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await requestFn();
-    } catch (error) {
-      if (error.status === 429) {
-        console.warn(`⚠️ Rate limit reached. Waiting ${delay / 1000}s before retry... (${i + 1}/${retries})`);
-        await sleep(delay);
-      } else {
-        console.error("❌ OpenAI API Error:", error);
-        throw error;
-      }
-    }
-  }
-  throw new Error("❌ Exceeded max retries due to rate limits.");
+// 抓取新闻
+async function fetchNews() {
+  const q = keywords.join(" OR ");
+  const res = await axios.get(`https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&sortBy=publishedAt&language=en&pageSize=10&apiKey=${NEWSAPI_KEY}`);
+  return res.data.articles.map(a => ({
+    title: a.title,
+    description: a.description || "",
+    url: a.url,
+    publishedAt: a.publishedAt
+  }));
 }
 
-// --- SCRAPER ---
-async function fetchCompanyNews(company) {
-  console.log(`📰 Fetching news from ${company.name}...`);
-  try {
-    const res = await fetch(company.url);
-    const html = await res.text();
-    return html.slice(0, 3000); // Keep it short enough for summarization
-  } catch (err) {
-    console.warn(`⚠️ Failed to fetch ${company.name}: ${err.message}`);
-    return "";
-  }
-}
+// 生成三语摘要
+async function summarizeMultilang(newsItems) {
+  const summaries = [];
+  for (const item of newsItems) {
+    const prompt = `
+Summarize this news in English, Chinese, and Swedish.
+Focus on technology, business strategy, and partnerships.
 
-// --- SUMMARIZER ---
-async function summarizeNews(company, content) {
-  if (!content) return "No content available.";
-
-  const prompt = `
-You are a multilingual telecom industry analyst.
-
-Summarize the following latest press releases from ${company.name} in three languages:
-
-1. 🇬🇧 English summary (short and factual)
-2. 🇨🇳 Chinese summary (简洁专业)
-3. 🇸🇪 Swedish summary (kortfattad och tydlig)
-
-Focus on technology, business strategy, and partnership highlights.
-Text:
-${content}
+Title: ${item.title}
+Description: ${item.description}
+Link: ${item.url}
 `;
-
-  const response = await callOpenAIWithRetry(() =>
-    client.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [{ role: "user", content: prompt }],
-    })
-  );
-
-  return response.choices[0].message.content;
-}
-
-// --- MAIN ---
-async function main() {
-  console.log("🚀 Starting multi-company telecom scraper...");
-
-  const summaries = [];
-
-  for (const company of COMPANIES) {
-    const content = await fetchCompanyNews(company);
-    console.log(`💬 Summarizing ${company.name}...`);
-    const summary = await summarizeNews(company, content);
-    summaries.push({ company: company.name, summary });
-    await sleep(5000); // gentle delay between API calls
+    });
+    summaries.push({
+      title: item.title,
+      url: item.url,
+      summary: completion.choices[0].message.content
+    });
   }
-
-  // --- GENERATE HTML ---
-  const htmlContent = `
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Telecom Daily Summary</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; color: #333; }
-      h1 { color: #004080; }
-      .company { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-      pre { white-space: pre-wrap; font-size: 0.95em; }
-    </style>
-  </head>
-  <body>
-    <h1>🌍 Daily Telecom Industry Summary</h1>
-    ${summaries
-      .map(
-        (s) => `
-        <div class="company">
-          <h2>${s.company}</h2>
-          <pre>${s.summary}</pre>
-        </div>`
-      )
-      .join("")}
-  </body>
-  </html>
-  `;
-
-  fs.writeFileSync("index.html", htmlContent);
-  console.log("✅ Saved multilingual summaries to index.html");
+  return summaries;
 }
 
-// --- RUN ---
-main().catch((err) => {
-  console.error("❌ Fatal error:", err);
-  process.exit(1);
-});
+// 生成 HTML 页面
+async function main() {
+  const newsItems = await fetchNews();
+  const summaries = await summarizeMultilang(newsItems);
+  const updateTime = new Date().toLocaleString();
+
+  const html = `
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Daily Telecom News</title>
+<meta http-equiv="refresh" content="1800"> <!-- 每30分钟刷新 -->
+<style>
+body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+h1 { color: #2E86C1; }
+.news-item { margin-bottom: 20px; }
+.news-item a { text-decoration: none; color: #1B4F72; }
+.news-item a:hover { text-decoration: underline; }
+.update-time { font-size: 0.9em; color: gray; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<h1>Daily Telecom News Summary</h1>
+<div class="update-time">Last updated: ${updateTime}</div>
+${summaries.map(s => `
+<div class="news-item">
+<h2><a href="${s.url}" target="_blank">${s.title}</a></h2>
+<p>${s.summary}</p>
+</div>`).join("\n")}
+</body>
+</html>
+`;
+
+  fs.writeFileSync("index.html", html);
+  console.log("Daily summary generated: index.html");
+}
+
+main().catch(console.error);
+
