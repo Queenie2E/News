@@ -1,5 +1,5 @@
 import fs from "fs";
-import OpenAI from "@cursorai/openai";
+import OpenAI from "openai";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
