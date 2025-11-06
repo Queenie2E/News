@@ -1,9 +1,8 @@
 name: Daily Telecom Scraper
 
-# Trigger workflow every day at 8:00 UTC
 on:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 8 * * *'  # every day at 08:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -11,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -19,26 +18,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # your Node version
+          node-version: '20'
 
-      # 3️⃣ Install dependencies
+      # 3️⃣ Install dependencies inside news/
       - name: Install dependencies
-        run: cd news &&
-            npm install
+        run: |
+          cd news
+          npm install
 
-      # 4️⃣ Set OpenAI API key
-      - name: Set OpenAI API key
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: echo "OPENAI_API_KEY is set"
-
-      # 5️⃣ Run the scraper
+      # 4️⃣ Run scraper inside news/
       - name: Run scraper
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run:  node news/scrape.js
+        run: |
+          cd news
+          node scrape.js
 
-      # 6️⃣ Commit and push changes
+      # 5️⃣ Commit & push changes (from repo root)
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
