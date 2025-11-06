@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -20,16 +20,19 @@ jobs:
         with:
           node-version: '20'
 
- # 3️⃣ Install dependencies and run scraper in one step
-      - name: Install dependencies & run scraper
+      # 3️⃣ Install dependencies in news/
+      - name: Install dependencies
+        working-directory: news
+        run: npm install
+
+      # 4️⃣ Run scraper
+      - name: Run scraper
+        working-directory: news
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          cd news
-          npm install
-          node scrape.js
-          
-            # 4️⃣ Commit & push changes
+        run: node scrape.js
+
+      # 5️⃣ Commit & push updated index.html
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
@@ -38,6 +41,3 @@ jobs:
           git commit -m "Daily update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git push origin main
-
-      
-
