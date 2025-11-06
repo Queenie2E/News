@@ -1,111 +1,38 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8">
-  <title>全球移动通信公司日报</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-    .card { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    h1 { text-align: center; }
-    h2 { margin-top: 0; }
-    .languages { margin-top: 10px; }
-    .lang { margin-bottom: 8px; }
-    .lang‑tag { font-weight: bold; }
-  </style>
-</head>
-<body>
-  <h1>全球移动通信公司日报</h1>
-  <div id="report"></div>
 
-  <script type="module">
-    import OpenAI from "openai";
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Telecom Daily Summary</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; color: #333; }
+      h1 { color: #004080; }
+      .company { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+      pre { white-space: pre-wrap; font-size: 0.95em; }
+    </style>
+  </head>
+  <body>
+    <h1>🌍 Daily Telecom Industry Summary</h1>
+    
+        <div class="company">
+          <h2>Ericsson</h2>
+          <pre>The provided content appears to be a web page blocking automated access (e.g., a Cloudflare challenge) and does not contain any Ericsson press release text. Could you please provide the actual press release text or a functional link so I can summarize accordingly?</pre>
+        </div>
+        <div class="company">
+          <h2>Nokia</h2>
+          <pre>It appears that the link to the latest Nokia press releases is inaccessible due to permission restrictions. Without the actual content of the press releases, I am unable to provide summaries.
 
-    // 初始化 OpenAI 客户端（替换为你的 API 密钥或环境变量方式）
-    const client = new OpenAI({ apiKey: "YOUR_API_KEY_HERE" });
+If you can provide the text or key details from the press releases, I would be happy to summarize them in English, Chinese, and Swedish focusing on technology, business strategy, and partnership highlights.</pre>
+        </div>
+        <div class="company">
+          <h2>Samsung Networks</h2>
+          <pre>Certainly! Please provide the press release text from Samsung Networks so I can summarize it in English, Chinese, and Swedish.</pre>
+        </div>
+        <div class="company">
+          <h2>Huawei</h2>
+          <pre>It appears that the Huawei press releases are not accessible due to permission restrictions. Without the actual content, I am unable to provide a summary in English, Chinese, or Swedish. 
 
-    // 公司列表（你可根据需求扩展）
-    const companies = [
-  { name: "Huawei Technologies Co., Ltd.", label: "Huawei", country: "China" },
-  { name: "Nokia Oyj", label: "Nokia", country: "Finland" },
-  { name: "Telefonaktiebolaget LM Ericsson", label: "Ericsson", country: "Sweden" },
-  { name: "Samsung Electronics Co., Ltd.", label: "Samsung", country: "South Korea" },
-  { name: "ZTE Corporation", label: "ZTE", country: "China" },
-  { name: "NEC Corporation", label: "NEC", country: "Japan" },
-  { name: "Ciena Corporation", label: "Ciena", country: "USA" },
-  { name: "Juniper Networks, Inc.", label: "Juniper", country: "USA" },
-  { name: "Cisco Systems, Inc.", label: "Cisco", country: "USA" },
-  { name: "Fujitsu Limited", label: "Fujitsu", country: "Japan" },
-  { name: "Mavenir Systems, Inc.", label: "Mavenir", country: "USA" },
-  { name: "Comba Telecom Systems Holdings Limited", label: "Comba", country: "China/HK" },
-  { name: "Airspan Networks, Inc.", label: "Airspan", country: "USA" },
-  { name: "Oracle Corporation", label: "Oracle", country: "USA" },
-  { name: "ip.access Limited", label: "ip.access", country: "UK" }
-];
-
-    // 抓取新闻或公告的函数（需你补充实际抓取逻辑）
-    async function fetchNewsForCompany(company) {
-      // 示例：你可用 fetch() 调用新闻 API 或抓取公司公告页面。
-      // 这里返回模拟数据，可替换为真实抓取逻辑。
-      return [
-        `【模拟】${company.label} 今日宣布其 5G 网络设备将在欧洲市场投入商业使用。`,
-        `【模拟】${company.label} 报告其季度收入增长，并签署新客户合同。`
-      ];
-    }
-
-    // 生成三语摘要（中文、英文、瑞典语）
-    async function summarizeMultilang(text, companyLabel) {
-      const prompt = `
-请基于以下内容为公司 “${companyLabel}” 生成三语摘要：
-原文：
-${text}
-
-请分别用：
-中文：
-英文：
-瑞典语：
-每一段都简洁明了，适合作为日报展示。
-`;
-      const response = await client.responses.create({
-        model: "gpt-4.1-mini",
-        input: prompt
-      });
-      return response.output_text;
-    }
-
-    // 主流程
-    async function main() {
-      const reportDiv = document.getElementById("report");
-
-      for (const company of companies) {
-        try {
-          const newsList = await fetchNewsForCompany(company);
-          const combinedText = newsList.join("\n");
-          const summary = await summarizeMultilang(combinedText, company.label);
-
-          const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `
-            <h2>${company.label} (${company.country})</h2>
-            <div class="languages">
-              ${summary.split("\n").map(line => {
-                if (line.startsWith("中文：") || line.startsWith("English：") || line.startsWith("Svenska：")) {
-                  const tag = line.split("：")[0];
-                  const content = line.slice(tag.length + 1);
-                  return `<div class="lang"><span class="lang‑tag">${tag}：</span>${content}</div>`;
-                }
-                return `<div>${line}</div>`;
-              }).join("")}
-            </div>
-          `;
-          reportDiv.appendChild(card);
-        } catch (err) {
-          console.error("Error processing", company.label, err);
-        }
-      }
-    }
-
-    // 启动主流程
-    main();
-  </script>
-</body>
-</html>
+If you can provide the text of the press releases or alternative sources, I would be happy to help with the summaries.</pre>
+        </div>
+  </body>
+  </html>
+  
