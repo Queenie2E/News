@@ -33,8 +33,7 @@ jobs:
         run: |
           cd news
           node scrape.js
-
-      # 5️⃣ Commit & push changes (from repo root)
+      
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
