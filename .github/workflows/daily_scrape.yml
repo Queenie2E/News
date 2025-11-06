@@ -23,7 +23,7 @@ jobs:
 
       # 3️⃣ Install dependencies
       - name: Install dependencies
-        run: cd news
+        run: cd news &&
             npm install
 
       # 4️⃣ Set OpenAI API key
@@ -36,13 +36,13 @@ jobs:
       - name: Run scraper
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: cd news
+        run: cd news &&
              node news/scrape.js
 
       # 6️⃣ Commit and push changes
       - name: Commit & push changes
         run: |
-          cd news
+          cd news &&
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add news/index.html
