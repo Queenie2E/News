@@ -20,19 +20,16 @@ jobs:
         with:
           node-version: '20'
 
-      # 3️⃣ Install dependencies inside news/
-      - name: Install dependencies
-        run: |
-          cd news
-          npm install
-
-      # 4️⃣ Run scraper inside news/
-      - name: Run scraper
+ # 3️⃣ Install dependencies and run scraper in one step
+      - name: Install dependencies & run scraper
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          cd news
+          npm install
           node scrape.js
-      
+          
+            # 4️⃣ Commit & push changes
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
