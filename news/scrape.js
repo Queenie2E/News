@@ -1,26 +1,45 @@
 // --- scrape.js ---
-// ✅ 使用 ESM 模块风格，确保 package.json 里写上: { "type": "module" }
+// ✅ Make sure your package.json has: { "type": "module" }
 
 import OpenAI from "openai";
 import fs from "fs";
 import fetch from "node-fetch";
 
-// 初始化 OpenAI
+// --- CONFIG ---
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 简单的延时函数
+const COMPANIES = [
+  {
+    name: "Ericsson",
+    url: "https://www.ericsson.com/en/press-releases",
+  },
+  {
+    name: "Nokia",
+    url: "https://www.nokia.com/about-us/news/releases/",
+  },
+  {
+    name: "Samsung Networks",
+    url: "https://www.samsung.com/global/business/networks/insights/news/",
+  },
+  {
+    name: "Huawei",
+    url: "https://www.huawei.com/en/news/",
+  },
+];
+
+// --- HELPERS ---
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 统一的API调用函数（自动重试机制）
+// Automatic retry wrapper for OpenAI rate limits
 async function callOpenAIWithRetry(requestFn, retries = 5, delay = 20000) {
   for (let i = 0; i < retries; i++) {
     try {
       return await requestFn();
     } catch (error) {
       if (error.status === 429) {
-        console.warn(`⚠️ Rate limit hit, waiting ${delay / 1000}s before retry... (${i + 1}/${retries})`);
+        console.warn(`⚠️ Rate limit reached. Waiting ${delay / 1000}s before retry... (${i + 1}/${retries})`);
         await sleep(delay);
       } else {
         console.error("❌ OpenAI API Error:", error);
@@ -31,45 +50,40 @@ async function callOpenAIWithRetry(requestFn, retries = 5, delay = 20000) {
   throw new Error("❌ Exceeded max retries due to rate limits.");
 }
 
-// 示例：获取行业新闻（你可后续替换成真正数据源）
-async function fetchNews() {
-  const urls = [
-    "https://www.ericsson.com/en/press-releases",
-    "https://www.nokia.com/about-us/news/releases/",
-    "https://www.samsung.com/global/business/networks/insights/news/",
-    "https://www.huawei.com/en/news/",
-  ];
-
-  let allText = "";
-  for (const url of urls) {
-    try {
-      const res = await fetch(url);
-      const html = await res.text();
-      allText += `\n### ${url}\n` + html.slice(0, 2000); // 只取部分以防太长
-      await sleep(3000); // 避免请求太快
-    } catch (err) {
-      console.warn(`⚠️ Failed to fetch ${url}: ${err.message}`);
-    }
+// --- SCRAPER ---
+async function fetchCompanyNews(company) {
+  console.log(`📰 Fetching news from ${company.name}...`);
+  try {
+    const res = await fetch(company.url);
+    const html = await res.text();
+    return html.slice(0, 3000); // Keep it short enough for summarization
+  } catch (err) {
+    console.warn(`⚠️ Failed to fetch ${company.name}: ${err.message}`);
+    return "";
   }
-  return allText;
 }
 
-// 多语言总结
-async function summarizeMultilang(content) {
-  const prompt = `
-Summarize the following telecom industry updates into three short summaries:
-1. English version
-2. Chinese version
-3. Swedish version
+// --- SUMMARIZER ---
+async function summarizeNews(company, content) {
+  if (!content) return "No content available.";
 
-Focus on key business and technology points.
+  const prompt = `
+You are a multilingual telecom industry analyst.
+
+Summarize the following latest press releases from ${company.name} in three languages:
+
+1. 🇬🇧 English summary (short and factual)
+2. 🇨🇳 Chinese summary (简洁专业)
+3. 🇸🇪 Swedish summary (kortfattad och tydlig)
+
+Focus on technology, business strategy, and partnership highlights.
 Text:
-${content.slice(0, 4000)}
+${content}
 `;
 
   const response = await callOpenAIWithRetry(() =>
     client.chat.completions.create({
-      model: "gpt-4.1-mini", // 或换成 "gpt-3.5-turbo" 避免限流
+      model: "gpt-4.1-mini",
       messages: [{ role: "user", content: prompt }],
     })
   );
@@ -77,29 +91,54 @@ ${content.slice(0, 4000)}
   return response.choices[0].message.content;
 }
 
-// 主函数
+// --- MAIN ---
 async function main() {
-  console.log("🚀 Starting telecom industry news scraper...");
-  const newsContent = await fetchNews();
-  console.log("📰 News fetched. Summarizing...");
+  console.log("🚀 Starting multi-company telecom scraper...");
 
-  const summary = await summarizeMultilang(newsContent);
-  console.log("✅ Summary generated!");
+  const summaries = [];
 
-  const html = `
+  for (const company of COMPANIES) {
+    const content = await fetchCompanyNews(company);
+    console.log(`💬 Summarizing ${company.name}...`);
+    const summary = await summarizeNews(company, content);
+    summaries.push({ company: company.name, summary });
+    await sleep(5000); // gentle delay between API calls
+  }
+
+  // --- GENERATE HTML ---
+  const htmlContent = `
   <html lang="en">
-    <head><meta charset="UTF-8"><title>Telecom Daily Summary</title></head>
-    <body>
-      <h1>🌍 Daily Telecom Summary</h1>
-      <pre>${summary}</pre>
-    </body>
-  </html>`;
+  <head>
+    <meta charset="UTF-8" />
+    <title>Telecom Daily Summary</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; color: #333; }
+      h1 { color: #004080; }
+      .company { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+      pre { white-space: pre-wrap; font-size: 0.95em; }
+    </style>
+  </head>
+  <body>
+    <h1>🌍 Daily Telecom Industry Summary</h1>
+    ${summaries
+      .map(
+        (s) => `
+        <div class="company">
+          <h2>${s.company}</h2>
+          <pre>${s.summary}</pre>
+        </div>`
+      )
+      .join("")}
+  </body>
+  </html>
+  `;
 
-  fs.writeFileSync("index.html", html);
-  console.log("💾 Saved summary to index.html");
+  fs.writeFileSync("index.html", htmlContent);
+  console.log("✅ Saved multilingual summaries to index.html");
 }
 
+// --- RUN ---
 main().catch((err) => {
-  console.error("❌ Fatal Error:", err);
+  console.error("❌ Fatal error:", err);
   process.exit(1);
 });
