@@ -34,8 +34,12 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: node scrape.js
+   
+      # 5️⃣ Copy HTML result to root for GitHub Pages
+      - name: Copy result to root for GitHub Pages
+        run: cp news/index.html ./index.html
 
-      # 5️⃣ Commit & push updated index.html
+      # 6 Commit & push updated index.html
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
@@ -44,3 +48,4 @@ jobs:
           git commit -m "Daily update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git push origin main
+          
