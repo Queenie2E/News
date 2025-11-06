@@ -41,7 +41,6 @@ jobs:
       # 6️⃣ Commit and push changes
       - name: Commit & push changes
         run: |
-          cd news &&
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add news/index.html
