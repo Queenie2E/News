@@ -44,7 +44,7 @@ Link: ${item.url}
       url: item.url,
       summary: completion.choices[0].message.content
     });
-=======
+
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
@@ -125,7 +125,7 @@ Return JSON:
     } catch (err) {
       console.error("Error summarizing news:", n.title, err.message);
     }
->>>>>>> 223f7df (Update scrape.js and package.json with axios and Google API)
+
   }
   return summaries;
 }
