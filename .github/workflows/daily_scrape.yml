@@ -1,19 +1,21 @@
-name: Daily Telecom Scraper
+name: Hourly Telecom News Scraper
 
+# 每小时执行一次
 on:
   schedule:
-    - cron: '0 8 * * *'  # every day at 08:00 UTC
+    - cron: '0 * * * *'  # 每小时的第0分钟
   workflow_dispatch:
 
 permissions:
   contents: write
+
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout 仓库
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -23,29 +25,33 @@ jobs:
         with:
           node-version: '20'
 
-      # 3️⃣ Install dependencies in news/
+      # 3️⃣ 安装依赖
       - name: Install dependencies
-        working-directory: news
-        run: npm install
+        run: |
+          cd news
+          npm install axios openai
 
-      # 4️⃣ Run scraper
+      # 4️⃣ 运行抓取脚本
       - name: Run scraper
-        working-directory: news
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: node scrape.js
-   
-      - name: 📄 Copy result to root for GitHub Pages
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
         run: |
-          cp news/index.html ./index.html
+          cd news
+          node scrape.js
 
-      # 6 Commit & push updated index.html
+      # 5️⃣ 复制 index.html 到根目录（供 GitHub Pages 使用）
+      - name: Copy index.html to root
+        run: cp news/index.html ./index.html
+
+      # 6️⃣ Commit & Push changes
       - name: Commit & push changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add news/index.html
-          git commit -m "Daily update: $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git add index.html news/seen.json
+          git commit -m "Hourly update: $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git push origin main
-          
+
