@@ -1,4 +1,4 @@
-import axios from "axios";
+<<<<<<< HEAD
 import fs from "fs";
 import { OpenAI } from "openai";
 
@@ -44,10 +44,93 @@ Link: ${item.url}
       url: item.url,
       summary: completion.choices[0].message.content
     });
+=======
+import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const SEARCH_ENGINE_ID = process.env.SEARCH_ENGINE_ID;
+
+// 搜索关键词
+const keywords = "telecom OR Ericsson OR Nokia OR Huawei OR Qualcomm OR 5G OR satellite communications";
+
+// 去重文件路径
+const seenFile = path.resolve("seen.json");
+
+// 读取已抓取新闻ID
+function loadSeen() {
+  try {
+    return JSON.parse(fs.readFileSync(seenFile, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+// 保存已抓取新闻ID
+function saveSeen(seen) {
+  fs.writeFileSync(seenFile, JSON.stringify(seen, null, 2));
+}
+
+// 简单重试机制
+async function axiosGetWithRetry(url, retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axios.get(url);
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`Retry ${i + 1} failed: ${err.message}. Waiting ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+// 获取新闻
+async function fetchNews() {
+  const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(keywords)}&key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}`;
+  const { data } = await axiosGetWithRetry(url);
+  if (!data.items) return [];
+  return data.items.map(item => ({
+    id: item.link, // 用链接作为唯一ID
+    title: item.title,
+    link: item.link,
+    snippet: item.snippet
+  }));
+}
+
+// 三语摘要
+async function summarizeNews(news) {
+  const summaries = [];
+  for (const n of news) {
+    const prompt = `
+Summarize this telecom news in English, Chinese, and Swedish:
+
+Title: ${n.title}
+Snippet: ${n.snippet}
+
+Return JSON:
+{
+  "english": "...",
+  "chinese": "...",
+  "swedish": "..."
+}`;
+    try {
+      const res = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }]
+      });
+      const summary = JSON.parse(res.choices[0].message.content);
+      summaries.push({ ...n, ...summary });
+    } catch (err) {
+      console.error("Error summarizing news:", n.title, err.message);
+    }
+>>>>>>> 223f7df (Update scrape.js and package.json with axios and Google API)
   }
   return summaries;
 }
 
+<<<<<<< HEAD
 // 生成 HTML 页面
 async function main() {
   const newsItems = await fetchNews();
@@ -87,3 +170,40 @@ ${summaries.map(s => `
 
 main().catch(console.error);
 
+=======
+// 主程序
+async function main() {
+  const seen = loadSeen();
+  const news = await fetchNews();
+
+  // 只保留未抓取的新闻
+  const newNews = news.filter(n => !seen.includes(n.id));
+  if (newNews.length === 0) {
+    console.log("No new news.");
+    return;
+  }
+
+  const summaries = await summarizeNews(newNews);
+
+  // 生成 HTML
+  let html = `<html><head><meta charset="UTF-8"><title>Telecom News Summary</title></head><body>`;
+  html += `<h1>Telecom News Summary (Updated ${new Date().toLocaleString()})</h1>`;
+
+  summaries.forEach(n => {
+    html += `<h3><a href="${n.link}" target="_blank">${n.title}</a></h3>
+<p><strong>EN:</strong> ${n.english}</p>
+<p><strong>ZH:</strong> ${n.chinese}</p>
+<p><strong>SV:</strong> ${n.swedish}</p><hr>`;
+  });
+
+  html += `</body></html>`;
+  fs.writeFileSync("index.html", html, "utf8");
+  console.log("index.html updated successfully.");
+
+  // 更新已抓取新闻ID
+  const newSeen = seen.concat(newNews.map(n => n.id));
+  saveSeen(newSeen);
+}
+
+main();
+>>>>>>> 223f7df (Update scrape.js and package.json with axios and Google API)
