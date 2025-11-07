@@ -1,14 +1,17 @@
 {
   "name": "telecom-news-scraper",
   "version": "1.0.0",
-  "description": "Daily telecom news scraper with multilingual summaries",
-  "main": "scrape.js",
+  "description": "Scraper for telecom industry news with multilingual summaries",
   "type": "module",
+  "main": "scrape.js",
   "scripts": {
     "start": "node scrape.js"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2",
-    "openai": "^4.104.0"
-  }
+    "axios": "^1.13.2",
+    "openai": "^4.10.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
