@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import fs from "fs";
 import { OpenAI } from "openai";
 
@@ -130,7 +130,7 @@ Return JSON:
   return summaries;
 }
 
-<<<<<<< HEAD
+
 // 生成 HTML 页面
 async function main() {
   const newsItems = await fetchNews();
@@ -170,7 +170,7 @@ ${summaries.map(s => `
 
 main().catch(console.error);
 
-=======
+
 // 主程序
 async function main() {
   const seen = loadSeen();
@@ -206,4 +206,4 @@ async function main() {
 }
 
 main();
->>>>>>> 223f7df (Update scrape.js and package.json with axios and Google API)
+
